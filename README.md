@@ -83,7 +83,7 @@ stanza-level keys override them.
 
 Datasets are fetched lazily via 🤗 **Datasets** and cached to
 `~/.cache/huggingface/`.
-Default: **[BC5CDR](https://huggingface.co/datasets/bc5cdr)**
+Default: **[BC5CDR](https://huggingface.co/datasets/bigbio/bc5cdr)**
 To switch:
 
 ```yaml
