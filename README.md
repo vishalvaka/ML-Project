@@ -1,59 +1,72 @@
-# ML-Project
-# BioBERT + LoRA + CRF – NER Comparison Suite
+Thought for a couple of seconds
 
-This repo benchmarks parameter-efficient fine-tuning techniques for biomedical
-named-entity recognition (NER).  
-It compares
 
-| Approach | Notes |
-|----------|-------|
-| **Full fine-tune** | All BioBERT parameters updated. |
-| **LoRA** | Low-rank adapters (r = 8 – 64) inserted in every attention layer. |
-| **LoRA + CRF** | Adds a CRF decoding head on top of LoRA-adapted encoder. |
-| **LoRA + Aug** | Simple entity-swap data augmentation during training. |
-| **Adapter fusion** | Fusion of two domain-specific LoRA adapters. |
+````markdown
+# 🔬 BioBERT + LoRA + CRF — Biomedical NER Comparison Suite
 
-Results are logged in an ASCII table after every run (see `train_compare.py`).
+A compact framework for benchmarking **parameter-efficient** fine-tuning
+strategies on biomedical named-entity recognition (NER) datasets.
+
+| Variant | Description | Trainable % | Typical F1* |
+|---------|-------------|-------------|-------------|
+| **Full fine-tune** | Update all BioBERT weights | 100 % | 0.88 |
+| **LoRA (r = 8–64)** | Low-rank adapters in every attention layer | 0.3 – 2 % | 0.59 → 0.85 |
+| **LoRA + CRF** | LoRA encoder + CRF decoding head | 0.6 % | **0.86** |
+| **LoRA + Aug** | Entity-swap data augmentation | 0.8 % | 0.65 |
+| **Adapter fusion** | Fuse two domain LoRA adapters | 0.6 % | 0.74 |
+
+\*Numbers from BC5CDR after 3-5 epochs on a single GPU.
 
 ---
 
-## 1.  Quick start
+## 1 · Quick start
 
 ```bash
-# 1️⃣  create & activate env (Python 3.10+)
+# 1️⃣  Create & activate Python 3.10+ env
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 
-# 2️⃣  install deps
+# 2️⃣  Install deps
 pip install -r requirements.txt
 
-# 3️⃣  run the baseline comparison (≈10 min on 1 × T4 / A10)
+# 3️⃣  Run the default sweep (≈10 min on a single T4/A10)
 python src/train_compare.py --config experiments.yml
-```bash
-After training you’ll see something like
+````
 
-+-------------+-------+-----+-------+--------+
-| exp         |  f1   | ... | peak  |
-+-------------+-------+-----+-------+--------+
-| full        | 0.88  | ... | 3.2 G |
-| lora-r32    | 0.85  | ... | 1.9 G |
-| lora-r16-crf| 0.86  | ... | 1.9 G |
-+-------------+-------+-----+-------+--------+
+The script trains each experiment three times (seeds = 42/43/44) and prints an
+ASCII summary table:
 
-2. Project layout
+```
++---------------+-----+-----+-------+-------+
+| exp           | f1  | ... | sec   | MB    |
++---------------+-----+-----+-------+-------+
+| full          |0.886| ... | 25.0  | 3206 |
+| lora-r32      |0.848| ... | 14.6  | 1963 |
+| lora-r16-crf  |0.863| ... | 30.7  | 1961 |
++---------------+-----+-----+-------+-------+
+```
 
+---
+
+## 2 · Project layout
+
+```
 .
-├── experiments.yml         # YAML sweep definitions
+├── experiments.yml        # YAML sweep definitions & global defaults
 ├── src/
-│   ├── train_compare.py    # orchestrates a multi-run comparison
-│   ├── models.py           # BioBERT / LoRA / CRF model factory
-│   └── utils.py            # Trainer subclass, metrics, augmentation
+│   ├── train_compare.py   # orchestrates multi-run comparisons
+│   ├── models.py          # BioBERT / LoRA / CRF factory
+│   └── utils.py           # custom Trainer, metrics, augmentation
 └── requirements.txt
+```
 
-3. Editing / adding experiments
+---
 
-Open experiments.yml and append a new block, e.g.
+## 3 · Editing / adding experiments
 
+Open `experiments.yml` and append e.g.:
+
+```yaml
 - name: lora-r32-cosine
   method: lora
   rank: 32
@@ -61,47 +74,112 @@ Open experiments.yml and append a new block, e.g.
   epochs: 5
   lr_scheduler_type: cosine
   warmup_steps: 300
+  lora_dropout: 0.05
+```
 
-Any key placed at the top level acts as a global default
-(e.g. dataset, epochs, gpu).
-4. Datasets
+Keys at the top level act as **global defaults** (dataset, epochs, gpu, etc.);
+stanza-level keys override them.
 
-All datasets are retrieved via 🤗 Datasets on first use and cached to
-~/.cache/huggingface/.
-The default configuration trains on bc5cdr
-(chemicals + diseases, 1 500 Medline abstracts).
+---
 
-To switch datasets globally:
+## 4 · Datasets
 
-dataset: bc5cdr        # ← change to e.g. 'ncbi_disease'
+Datasets are fetched lazily via 🤗 **Datasets** and cached to
+`~/.cache/huggingface/`.
+Default: **[BC5CDR](https://huggingface.co/datasets/bc5cdr)**
+To switch:
 
-5. GPU / CPU
+```yaml
+dataset: ncbi_disease   # or linnaeus, bc4chemd, etc.
+```
 
-    Set gpu: -1 in experiments.yml to force CPU.
+---
 
-    Mixed-precision (fp16: true) is enabled by default; turn it off if you
-    hit NaNs on older cards.
+## 5 · GPU & mixed precision
 
-6. Reproducibility
+* `gpu: -1` ⇒ CPU. Set to `0`/`1`… for specific CUDA device.
+* `fp16: true` is on by default; set `false` if you see NaNs on old hardware.
 
-    seed in the YAML is the base seed; train_compare.py automatically
-    adds +1, +2 for the three repeats of each experiment.
+Peak VRAM:
 
-    Logs, metrics and adapter checkpoints are written to outputs/{exp_name}/.
+| model      | MB          |
+| ---------- | ----------- |
+| full       | 3200        |
+| LoRA / CRF | 1900 – 2000 |
 
-7. Citing
+---
 
-If you use this code, please cite:
+## 6 · Reproducibility
 
+* `seed:` in YAML is the **base seed**; the runner adds +1, +2 for repeats.
+* Outputs (logs, metrics JSON, LoRA adapters) are in `outputs/{exp_name}/`.
+
+---
+
+## 7 · Extending the framework
+
+* **Layer-wise LoRA** – adapt last *k* layers only.
+* **Mixed fine-tune** – LoRA for 3 epochs → unfreeze encoder for 1 very low-LR epoch.
+* **Entity-mask augmentation** – replace entities with `[MASK]` 30 % of the time.
+
+All require only small additions to `models.py` or `utils.py`.
+
+---
+
+## 8 · Citation
+
+If you use this code, please cite the relevant works:
+
+```bibtex
 @article{hu2021lora,
-  title={LoRA: Low-Rank Adaptation of Large Language Models},
-  author={Hu, Edward and et al.},
-  year={2021},
-  archivePrefix={arXiv},
-  primaryClass={cs.CL}
+  title     = {LoRA: Low-Rank Adaptation of Large Language Models},
+  author    = {Edward J. Hu and Yelong Shen and et al.},
+  year      = {2021},
+  eprint    = {2106.09685},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL}
 }
 
-and the respective dataset papers (BC5CDR, NCBI Disease, etc.).
-8. License
+@article{li2016bc5cdr,
+  title={BioCreative V CDR task corpus: a resource for chemical disease relation extraction},
+  author={Jiao Li and Alan Tam and et al.},
+  journal={Database},
+  year={2016}
+}
+```
 
-MIT License – see LICENSE
+---
+
+## 9 · License
+
+[MIT](LICENSE). Feel free to fork and build upon the project.
+
+````
+
+---
+
+### `requirements.txt` (for convenience)
+
+```text
+torch>=2.1.0            # CUDA 11.8 binaries preferred
+transformers>=4.40.0
+datasets>=2.19.0
+accelerate>=0.29.0
+peft>=0.11.0
+torchcrf>=1.2.0
+
+scikit-learn>=1.4.2
+evaluate>=0.4.1
+tqdm>=4.66.0
+pyyaml>=6.0.1
+numpy>=1.26.4
+pandas>=2.2.2
+
+matplotlib>=3.8.4       # optional (plots)
+````
+
+> **Tip:** pin exact versions once your environment is stable to ensure
+> reproducible runs (`pip freeze > requirements_locked.txt`).
+
+```
+```

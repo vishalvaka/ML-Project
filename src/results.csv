@@ -1,0 +1,4 @@
+exp,method,rank,alpha,use_crf,f1,precision,recall,test_f1,params,trainable,train_sec,sec_epoch,peak_MB
+lora-r32-fast,lora,32,-,False,0.8475,0.8381,0.8572,0.8412,108907018,1183493,73.3,14.65,1963
+lora-r48,lora,48,-,False,0.8176,0.8244,0.8109,0.8116,109496842,1773317,45.4,15.14,1979
+lora-r16-crf-long,lora,16,-,True,0.8632,0.8493,0.8777,0.8566,108903976,593704,153.6,30.72,3253
