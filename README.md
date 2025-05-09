@@ -29,7 +29,7 @@ pip install -r requirements.txt
 
 # 3️⃣  run the baseline comparison (≈10 min on 1 × T4 / A10)
 python src/train_compare.py --config experiments.yml
-
+```bash
 After training you’ll see something like
 
 +-------------+-------+-----+-------+--------+
