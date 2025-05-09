@@ -1,6 +1,3 @@
-Thought for a couple of seconds
-
-
 ````markdown
 # 🔬 BioBERT + LoRA + CRF — Biomedical NER Comparison Suite
 
