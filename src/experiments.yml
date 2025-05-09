@@ -1,0 +1,78 @@
+# experiments.yml  – configuration file consumed by train_compare.py
+# ------------------------------------------------------------------
+# Global defaults (apply to every experiment unless overridden)
+dataset: bc5cdr                    # Hugging Face dataset name
+epochs: 5                          # training epochs per run
+gpu: 0                             # CUDA device (-1 = CPU)
+seed: 42                           # base seed (train_compare.py will add +1,+2 for repeats)
+lr: 1e-4                           # default learning-rate for all LoRA + full models
+per_device_train_batch: 16         # can be overridden per experiment
+per_device_eval_batch:  16
+fp16: false                         # mixed precision to save VRAM
+weight_decay: 0.01
+
+experiments:
+# ──────────────────────────────────────────────────────────────────
+#   - name: full
+#     method: full                  # Full fine-tune BioBERT
+#     lr: 2e-5                      # slightly higher LR usually helps full FT
+
+# # ───────── LoRA baseline sweep (no CRF, no augmentation) ─────────
+#   - name: lora-r8
+#     method: lora
+#     rank: 8
+#     alpha: 16                     # α = 2×rank  (override if you wish)
+
+#   - name: lora-r16
+#     method: lora
+#     rank: 16                      # α omitted → defaults to 2×rank inside build_model
+
+#   - name: lora-r24
+#     method: lora
+#     rank: 24
+
+#   - name: lora-r32
+#     method: lora
+#     rank: 32
+#     alpha: 64
+
+# # ───────── LoRA + CRF (best rank only) ─────────
+#   - name: lora-r16-crf
+#     method: lora
+#     rank: 16
+#     use_crf: true                 # triggers the CRFTrainer and CRF head
+#     lr : 2e-4
+
+# # ───────── LoRA + simple data augmentation ─────────
+#   - name: lora-r24-aug
+#     method: lora
+#     rank: 24
+#     augment: true                 # run_augmentation() swaps entity surface forms
+
+# # ───────── Optional: adapter fusion across two domains ─────────
+#   - name: lora-fusion-med-legal
+#     method: lora
+#     rank: 16
+#     fuse_adapters: ["bc5cdr", "echr_ner"]  # requires both adapters to be pre-trained first
+
+  - name: lora-r32-fast
+    method: lora
+    rank: 32
+    lr: 5e-5
+    epochs: 5
+    lora_dropout: 0.05
+
+  - name: lora-r48
+    method: lora
+    rank: 48
+    lr: 5e-5
+    epochs: 3
+
+  - name: lora-r16-crf-long
+    method: lora
+    rank: 16
+    use_crf: true
+    lr: 2e-4
+    epochs: 5
+    per_device_train_batch: 32
+    warmup_steps: 100
