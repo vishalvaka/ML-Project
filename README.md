@@ -1,4 +1,4 @@
-````markdown
+
 # 🔬 BioBERT + LoRA + CRF — Biomedical NER Comparison Suite
 
 A compact framework for benchmarking **parameter-efficient** fine-tuning
