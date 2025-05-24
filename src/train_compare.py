@@ -28,6 +28,9 @@ from utils import (
     run_augmentation,
 )
 
+from huggingface_hub import HfApi, HfFolder
+from peft import PeftModel, PeftConfig 
+
 # ---------------------------------------------------------------------------
 # YAML helpers ---------------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -110,6 +113,59 @@ def main() -> None:
         start = time.time()
         trainer.train()
         train_time = time.time() - start
+
+        # ──  Save checkpoint  ───────────────────────────────────────────
+        out_dir = Path(cfg.get("out_dir", "outputs")) / exp_name
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        trainer.tokenizer.save_pretrained(out_dir)
+
+
+        if exp.get("use_crf"):
+    # 1) save the LoRA adapter (if any)
+            if isinstance(model.encoder, PeftModel):
+                model.encoder.save_pretrained(out_dir, safe_serialization=True)
+
+            # 2) save ONLY the trained classifier + CRF weights, with correct prefixes
+            head_state = {
+                f"base_model.model.{k}" if k.startswith("classifier") else k: v.cpu()
+                for k, v in model.state_dict().items()
+                if k.startswith("classifier") or k.startswith("crf.")
+            }
+            torch.save(head_state, out_dir / "non_encoder_head.pth")
+
+
+        # always save the tokenizer so the repo is self-contained
+       
+        # peft_submodel = getattr(model, "encoder", None)  # might be a PeftModel
+        elif isinstance(model, PeftModel):                 # pure PEFT
+            model.save_pretrained(out_dir, safe_serialization=True)
+
+        # if isinstance(peft_submodel, PeftModel):          # encoder adapter
+        # if cfg.get("use_crf", False):          # any CRF experiment
+        #     trainer.save_model(out_dir)        # writes full checkpoint
+
+        else:                                            # full fine-tune
+            trainer.save_model(out_dir)                  # writes 400-MB weights
+
+        # ──  Push to Hugging Face Hub (optional)  ───────────────────────
+        if exp.get("push_hub", False):
+            repo_id = "vishalvaka/biobert-finetuned-ner"   # ← fixed repo
+            subdir  = exp_name                             # e.g. full, lora-r32 …
+
+            api = HfApi(token=HfFolder.get_token())
+            api.create_repo(repo_id, repo_type="model", exist_ok=True)
+
+            api.upload_folder(
+                folder_path=str(out_dir),        # local checkpoint you just saved
+                repo_id=repo_id,
+                path_in_repo=subdir,             # upload TO this sub-folder
+                commit_message=f"add {subdir}",
+                ignore_patterns=["*.log", "*.ckpt"],
+            )
+            print(f"✓ {subdir} pushed to https://huggingface.co/{repo_id}/tree/{subdir}")
+
+        
         epochs_run = trainer.args.num_train_epochs
 
         peak_mb = (

@@ -1,8 +1,4 @@
----
 
-### `requirements.txt`
-
-```text
 # Core
 torch>=2.1.0
 torchvision>=0.16.0      # optional - for completeness
@@ -10,7 +6,7 @@ transformers>=4.40.0
 datasets>=2.19.0
 accelerate>=0.29.0
 peft>=0.11.0
-torchcrf>=1.2.0          # CRF layer
+torchcrf          # CRF layer
 
 # Evaluation / helpers
 scikit-learn>=1.4.2
@@ -22,3 +18,5 @@ pandas>=2.2.2
 
 # Optional (logging / plotting)
 matplotlib>=3.8.4
+
+prettytable

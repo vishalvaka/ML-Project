@@ -14,6 +14,11 @@ strategies on biomedical named-entity recognition (NER) datasets.
 
 \*Numbers from BC5CDR after 3-5 epochs on a single GPU.
 
+[![Hugging Face Spaces](https://huggingface.co/spaces/vishalvaka/bio-ner-demo/badge.svg)](https://huggingface.co/spaces/vishalvaka/bio-ner-demo)
+
+**Try it live!** Click the badge to open the Gradio app and compare the full
+fine-tune with the LoRA / CRF variants on any biomedical sentence.
+
 ---
 
 ## 1 · Quick start
